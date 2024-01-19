@@ -1,0 +1,6 @@
+plugins {
+    id 'java'
+}
+
+group = 'space.provided'
+version = '1.0.0'
