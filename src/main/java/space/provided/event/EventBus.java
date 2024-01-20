@@ -20,14 +20,31 @@ public final class EventBus {
         listeners = new ArrayList<>();
     }
 
+    /**
+     * Add a listener for the events it subscribed to.
+     *
+     * @param listener The listener object (can only be registered once).
+     */
     public void register(Object listener) {
-        listeners.add(listener);
+        if (!listeners.contains(listener)) {
+            listeners.add(listener);
+        }
     }
 
+    /**
+     * Remove a listener from subscribed events.
+     *
+     * @param listener The listener object
+     */
     public void unregister(Object listener) {
         listeners.remove(listener);
     }
 
+    /**
+     * Send an {@code event} to all registered listeners.
+     *
+     * @param event The event object which will be handled by the registered listeners.
+     */
     public void post(Object event) {
         for (int i = 0; i < listeners.size(); i++) {
             execute(listeners.get(i), event);
