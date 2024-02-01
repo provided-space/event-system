@@ -1,33 +1,51 @@
 package space.provided.event;
 
+import java.lang.invoke.CallSite;
+import java.lang.invoke.LambdaMetafactory;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public final class EventBus {
+public final class EventBus<T> {
 
-    private static final Predicate<Method> IS_SUBSCRIBED = method -> method.isAnnotationPresent(Subscribe.class);
-    private static final Predicate<Method> CAN_BE_CALLED = method -> method.getParameterCount() < 2;
-    private static final Predicate<Method> CAN_BE_TARGETED = IS_SUBSCRIBED.and(CAN_BE_CALLED);
+    private static final Predicate<Method> CAN_BE_TARGETED = method -> method.isAnnotationPresent(Subscribe.class) && method.getParameterCount() == 1 && Modifier.isPublic(method.getModifiers()) && !Modifier.isStatic(method.getModifiers());
 
-    private static final Map<Class<?>, List<Method>> CLASS_METHODS = new HashMap<>();
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+    private static final MethodType INVOKE_TYPE = MethodType.methodType(void.class, Object.class);
 
-    private final List<Object> listeners;
+    private final Map<Class<? extends T>, List<Subscriber<T>>> callTree;
 
-    EventBus() {
-        listeners = new ArrayList<>();
+    public EventBus() {
+        callTree = new HashMap<>();
     }
 
     /**
      * Add a listener for the events it subscribed to.
      *
-     * @param listener The listener object (can only be registered once).
+     * @param listener The listener object.
      */
-    public void register(Object listener) {
-        if (!listeners.contains(listener)) {
-            listeners.add(listener);
+    public void subscribe(Object listener) {
+        final MethodType factoryType = MethodType.methodType(Invoker.class, listener.getClass());
+
+        Arrays.stream(listener.getClass().getMethods()).filter(CAN_BE_TARGETED).forEach(method -> {
+            try {
+                final Class<T> event = (Class<T>) method.getParameterTypes()[0];
+                final CallSite callSite = LambdaMetafactory.metafactory(LOOKUP, "invoke", factoryType, INVOKE_TYPE, LOOKUP.unreflect(method), MethodType.methodType(void.class, event));
+                final Invoker<T> invoker = (Invoker<T>) callSite.getTarget().invoke(listener);
+
+                callTree.computeIfAbsent(event, o -> new LinkedList<>()).add(new Subscriber<>(invoker, listener, method.getAnnotation(Subscribe.class).priority()));
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        for (Iterator<Class<? extends T>> iterator = callTree.keySet().iterator(); iterator.hasNext(); ) {
+            callTree.get(iterator.next()).sort(Comparator.comparingInt(value -> value.priority));
         }
     }
 
@@ -36,8 +54,19 @@ public final class EventBus {
      *
      * @param listener The listener object
      */
-    public void unregister(Object listener) {
-        listeners.remove(listener);
+    public void unsubscribe(Object listener) {
+        final List<Class<? extends T>> removableEvents = new LinkedList<>();
+        for (Iterator<Class<? extends T>> iterator = callTree.keySet().iterator(); iterator.hasNext(); ) {
+            final Class<? extends T> event = iterator.next();
+            final List<Subscriber<T>> subscribers = callTree.get(event);
+
+            subscribers.removeIf(subscriber -> subscriber.listener.equals(listener));
+
+            if (subscribers.isEmpty()) {
+                removableEvents.add(event);
+            }
+        }
+        removableEvents.forEach(callTree::remove);
     }
 
     /**
@@ -45,40 +74,27 @@ public final class EventBus {
      *
      * @param event The event object which will be handled by the registered listeners.
      */
-    public void post(Object event) {
-        for (int i = 0; i < listeners.size(); i++) {
-            execute(listeners.get(i), event);
+    public void post(T event) {
+        final List<Subscriber<T>> subscribers = callTree.get(event.getClass());
+        if (subscribers == null) {
+            return;
+        }
+
+        for (int i = 0; i < subscribers.size(); i++) {
+            subscribers.get(i).invoker.invoke(event);
         }
     }
 
-    private void execute(Object listener, Object event) {
-        final Class<?> clazz = listener.getClass();
-        if (!CLASS_METHODS.containsKey(clazz)) {
-            CLASS_METHODS.put(clazz, Arrays.stream(clazz.getMethods()).filter(CAN_BE_TARGETED).collect(Collectors.toList()));
-        }
+    private static class Subscriber<T> {
 
-        CLASS_METHODS.get(clazz).stream()
-                .filter(method -> canMethodBeInvoked(method, event))
-                .forEach(method -> execute(listener, method, event));
-    }
+        private final Invoker<T> invoker;
+        private final Object listener;
+        private final int priority;
 
-    private boolean canMethodBeInvoked(Method method, Object event) {
-        if (method.getParameterCount() == 0) {
-            return method.getAnnotation(Subscribe.class).value().isAssignableFrom(event.getClass());
-        }
-
-        return method.getParameterTypes()[0].isAssignableFrom(event.getClass());
-    }
-
-    private void execute(Object listener, Method method, Object event) {
-        try {
-            if (method.getParameterCount() == 0) {
-                method.invoke(listener);
-            } else if (method.getParameterCount() == 1) {
-                method.invoke(listener, event);
-            }
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
+        private Subscriber(Invoker<T> invoker, Object listener, int priority) {
+            this.invoker = invoker;
+            this.listener = listener;
+            this.priority = priority;
         }
     }
 }

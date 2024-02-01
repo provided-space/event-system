@@ -17,11 +17,11 @@ import java.lang.annotation.Target;
  *     }
  *     }
  * </pre>
- * If the context of the event is not important, it can be suppressed by passing the class type as {@code value} parameter.
+ * If a higher priority is needed, it can be suppressed by passing a value as {@code value} parameter.
  * <pre>
  *     {@code
- *     @Subscribe(MyEvent.class)
- *     public void onMyEvent() {
+ *     @Subscribe(priority = 1)
+ *     public void onMyEvent(MyEvent event) {
  *         // Do anything
  *     }
  *     }
@@ -31,5 +31,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Subscribe {
 
-    Class<?> value() default void.class;
+    int priority() default 0;
+
 }
