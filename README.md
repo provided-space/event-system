@@ -40,9 +40,9 @@ dependencies {
 
 The events that are going to be dispatched as well as the listeners, can be any object without the need inheritance.
 
-In this case we want to listen to when a message is being sent. If the context of the event is not required, it can be suppressed by passing the event class to the annotation. Any events that are an instance of `MessageSendListener` will invoke both methods.
+In this case we want to listen to when a message is being sent. If a method should be executed with the default priority, you can override it using the `priority` parameter on the Annotation. Only methods with exact class matches will be invoked.
 ```java
-public final class MessageSendEvent implements Event {
+public final class MessageSendEvent {
     
     private MessageSender sender;
     private String message;
@@ -68,12 +68,12 @@ The event bus can be obtained with a new instance of `EventBus`. To start listen
 
 To dispatch an event, simply call the `post` method on your EventBus instance and pass your event.
 ```java
-final EventBus<Event> eventBus = new EventBus<>();
+final EventBus events = new EventBus<>();
 
 final MessageSendListener listener = new MessageSendListener();
-eventBus.register(listener);
-eventBus.post(new MessageSendEvent(sender, message));
+events.subscribe(listener);
+events.post(new MessageSendEvent(sender, message));
 
-eventBus.unregister(listener);
-eventBus.post(new MessageSendEvent(sender, message));
+events.unsubscribe(listener);
+events.post(new MessageSendEvent(sender, message));
 ```

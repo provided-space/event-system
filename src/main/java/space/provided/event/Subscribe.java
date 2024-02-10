@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  *     }
  *     }
  * </pre>
- * If a higher priority is needed, it can be suppressed by passing a value as {@code value} parameter.
+ * If a non-default priority is needed, it can be specified by passing a value as {@code priority} parameter.
  * <pre>
  *     {@code
  *     @Subscribe(priority = 1)

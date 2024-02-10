@@ -1,8 +1,8 @@
 package space.provided.event;
 
 @FunctionalInterface
-public interface Invoker<T> {
+public interface Invoker {
 
-    void invoke(T t);
+    void invoke(Object event);
 
 }
