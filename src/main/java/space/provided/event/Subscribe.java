@@ -17,10 +17,10 @@ import java.lang.annotation.Target;
  *     }
  *     }
  * </pre>
- * If a non-default priority is needed, it can be specified by passing a value as {@code priority} parameter.
+ * If a non-default sequence is needed, it can be specified by passing a value as {@code sequence} parameter.
  * <pre>
  *     {@code
- *     @Subscribe(priority = 1)
+ *     @Subscribe(sequence = 1)
  *     public void onMyEvent(MyEvent event) {
  *         // Do anything
  *     }
@@ -31,6 +31,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Subscribe {
 
-    int priority() default 0;
+    int sequence() default 0;
 
 }

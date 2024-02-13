@@ -55,14 +55,14 @@ public final class EventBus {
                 final CallSite callSite = LambdaMetafactory.metafactory(LOOKUP, "invoke", factoryType, INVOKE_TYPE, LOOKUP.unreflect(method), MethodType.methodType(void.class, event));
                 final Invoker invoker = (Invoker) callSite.getTarget().invoke(listener);
 
-                callTree.computeIfAbsent(event, o -> new LinkedList<>()).add(new Subscriber(invoker, listener, method.getAnnotation(Subscribe.class).priority()));
+                callTree.computeIfAbsent(event, o -> new LinkedList<>()).add(new Subscriber(invoker, listener, method.getAnnotation(Subscribe.class).sequence()));
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         });
 
         for (Iterator<Class<?>> iterator = callTree.keySet().iterator(); iterator.hasNext(); ) {
-            callTree.get(iterator.next()).sort(Comparator.comparingInt(value -> -value.priority));
+            callTree.get(iterator.next()).sort(Comparator.comparingInt(value -> value.sequence));
         }
     }
 
@@ -106,12 +106,12 @@ public final class EventBus {
 
         private final Invoker invoker;
         private final Object listener;
-        private final int priority;
+        private final int sequence;
 
-        private Subscriber(Invoker invoker, Object listener, int priority) {
+        private Subscriber(Invoker invoker, Object listener, int sequence) {
             this.invoker = invoker;
             this.listener = listener;
-            this.priority = priority;
+            this.sequence = sequence;
         }
     }
 }

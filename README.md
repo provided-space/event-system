@@ -40,7 +40,8 @@ dependencies {
 
 The events that are going to be dispatched as well as the listeners, can be any object without the need inheritance.
 
-In this case we want to listen to when a message is being sent. If a method should be executed with the default priority, you can override it using the `priority` parameter on the Annotation. Only methods with exact class matches will be invoked.
+In this case we want to listen to when a message is being sent. Only methods with exact class matches will be invoked.<br>
+If you need to control how early/late a method should be executed, you can take advantage of the `sequence` parameter on the Annotation. The higher the sequence, the later the method will be invoked.
 ```java
 public final class MessageSendEvent {
     
@@ -57,7 +58,7 @@ public final class MessageSendListener {
         System.out.println(String.format("A message is being sent by %1$s.", event.getSender().getUUID()));
     }
 
-    @Subscribe(priority = 1)
+    @Subscribe(sequence = 1)
     public void onMessageSend(MessageSendEvent event) {
         System.out.println("A message is being sent.");
     }
