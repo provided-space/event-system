@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'space.provided:event-system:TAG'
+    implementation 'space.provided:event-system:VERSION'
 }
 ```
 
@@ -31,7 +31,7 @@ dependencies {
     <dependency>
         <groupId>space.provided</groupId>
         <artifactId>event-system</artifactId>
-        <version>TAG</version>
+        <version>VERSION</version>
     </dependency>
 </dependencies>
 ```
